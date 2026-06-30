@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Allocators: Main Page</title>
+<title>Allocators: allocators</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,10 +69,83 @@ $(function() {
 </div>
 </div>
 
-<div class="header">
-  <div class="headertitle"><div class="title">Allocators Documentation</div></div>
+<div><div class="header">
+  <div class="headertitle"><div class="title">allocators </div></div>
 </div><!--header-->
 <div class="contents">
+<div class="textblock"><p>A memory allocator library in C99, built on top of <a href="https://tdecorso.github.io/containers/">containers</a>.</p>
+<h1><a class="anchor" id="overview"></a>
+Overview</h1>
+<p><code>allocators</code> provides allocator types designed for workloads that create many small objects with identical lifetimes. All allocators are optimised for bulk allocation and single-shot release rather than individual frees.</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Allocator   </th><th class="markdownTableHeadNone">Alloc   </th><th class="markdownTableHeadNone">Reset   </th><th class="markdownTableHeadNone">Free    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Arena   </td><td class="markdownTableBodyNone">O(1)†   </td><td class="markdownTableBodyNone">O(b)‡   </td><td class="markdownTableBodyNone">O(b)‡    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">String arena   </td><td class="markdownTableBodyNone">O(n)§/O(1)¶   </td><td class="markdownTableBodyNone">—   </td><td class="markdownTableBodyNone">O(b)‡   </td></tr>
+</table>
+<p>† Amortised — a new block is allocated only when the current one is exhausted. ‡ O(b) where b is the number of blocks allocated. § O(n) where n is the string length — on the first intern of a given string. ¶ O(1) on subsequent interns of the same string (hash lookup).</p>
+<h1><a class="anchor" id="arena_section"></a>
+Arena allocator</h1>
+<p>A bump allocator that dispenses memory from a chain of fixed-size blocks. Allocations are O(1) amortised and aligned to <code>_Alignof(max_align_t)</code>. All memory is released at once when the arena is destroyed or reset.</p>
+<div class="fragment"><div class="line"><a class="code hl_typedef" href="group__arena.html#ga6511b561eba6017d3f09e9ef44b6b500">arena_t</a>* arena = <a class="code hl_function" href="group__arena.html#ga1ebe89c925f875e650da203b88ee837f">arena_create</a>(0, NULL);   <span class="comment">// 0 = use default block size</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">float</span>* vec  = (<span class="keywordtype">float</span>*)<a class="code hl_function" href="group__arena.html#ga5629ccdbc53eceafb922ffb8ba4e7214">arena_alloc</a>(arena, 4 * <span class="keyword">sizeof</span>(<span class="keywordtype">float</span>), NULL);</div>
+<div class="line"><span class="keyword">const</span> <span class="keywordtype">char</span>* tag  = <a class="code hl_function" href="group__arena.html#ga02fe99bdac142acc4c31f120fcaa2370">arena_strdup</a>(arena,  <span class="stringliteral">&quot;widget&quot;</span>,    NULL);</div>
+<div class="line"><span class="keyword">const</span> <span class="keywordtype">char</span>* name = <a class="code hl_function" href="group__arena.html#gaba36fabf2dbb3b3da01bf76691de4b7f">arena_strndup</a>(arena, <span class="stringliteral">&quot;btn_ok&quot;</span>, 6, NULL);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// rewind without freeing blocks</span></div>
+<div class="line"><a class="code hl_function" href="group__arena.html#ga06f713e3260bd2775bdc5ea099b4e333">arena_reset</a>(arena, NULL);</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_function" href="group__arena.html#ga3bdc08ab0e9af64fab2c5c0557b1c1c3">arena_destroy</a>(arena);</div>
+<div class="ttc" id="agroup__arena_html_ga02fe99bdac142acc4c31f120fcaa2370"><div class="ttname"><a href="group__arena.html#ga02fe99bdac142acc4c31f120fcaa2370">arena_strdup</a></div><div class="ttdeci">char * arena_strdup(arena_t *arena, const char *s, error_t *err)</div><div class="ttdoc">Copies a null-terminated string into the arena.</div></div>
+<div class="ttc" id="agroup__arena_html_ga06f713e3260bd2775bdc5ea099b4e333"><div class="ttname"><a href="group__arena.html#ga06f713e3260bd2775bdc5ea099b4e333">arena_reset</a></div><div class="ttdeci">void arena_reset(arena_t *arena, error_t *err)</div><div class="ttdoc">Rewinds the arena without freeing its blocks.</div></div>
+<div class="ttc" id="agroup__arena_html_ga1ebe89c925f875e650da203b88ee837f"><div class="ttname"><a href="group__arena.html#ga1ebe89c925f875e650da203b88ee837f">arena_create</a></div><div class="ttdeci">arena_t * arena_create(size_t block_size, error_t *err)</div><div class="ttdoc">Creates a new empty arena.</div></div>
+<div class="ttc" id="agroup__arena_html_ga3bdc08ab0e9af64fab2c5c0557b1c1c3"><div class="ttname"><a href="group__arena.html#ga3bdc08ab0e9af64fab2c5c0557b1c1c3">arena_destroy</a></div><div class="ttdeci">void arena_destroy(arena_t *arena)</div><div class="ttdoc">Destroys the arena and frees all associated memory.</div></div>
+<div class="ttc" id="agroup__arena_html_ga5629ccdbc53eceafb922ffb8ba4e7214"><div class="ttname"><a href="group__arena.html#ga5629ccdbc53eceafb922ffb8ba4e7214">arena_alloc</a></div><div class="ttdeci">void * arena_alloc(arena_t *arena, size_t size, error_t *err)</div><div class="ttdoc">Allocates a block of memory from the arena.</div></div>
+<div class="ttc" id="agroup__arena_html_ga6511b561eba6017d3f09e9ef44b6b500"><div class="ttname"><a href="group__arena.html#ga6511b561eba6017d3f09e9ef44b6b500">arena_t</a></div><div class="ttdeci">struct arena arena_t</div><div class="ttdoc">General-purpose bump allocator.</div><div class="ttdef"><b>Definition</b> allocators.h:57</div></div>
+<div class="ttc" id="agroup__arena_html_gaba36fabf2dbb3b3da01bf76691de4b7f"><div class="ttname"><a href="group__arena.html#gaba36fabf2dbb3b3da01bf76691de4b7f">arena_strndup</a></div><div class="ttdeci">char * arena_strndup(arena_t *arena, const char *s, size_t n, error_t *err)</div><div class="ttdoc">Copies at most n bytes of a string into the arena.</div></div>
+</div><!-- fragment --><p>Requests larger than the block size are satisfied by a dedicated oversized block so no allocation ever fails due to size alone.</p>
+<p>See <a class="el" href="group__arena.html">Arena allocator</a> for the full API.</p>
+<h1><a class="anchor" id="str_arena_section"></a>
+String arena</h1>
+<p>A string interning layer built on top of <a class="el" href="group__arena.html#ga6511b561eba6017d3f09e9ef44b6b500">arena_t</a>. Equal strings are stored exactly once; every call to <a class="el" href="group__str__arena.html#gad390451941e498f1f8b710a63f3445c5">str_arena_intern</a> with the same content returns the same pointer, making pointer equality sufficient for string comparison after interning.</p>
+<div class="fragment"><div class="line"><a class="code hl_typedef" href="group__str__arena.html#gac22cf50f504ffff1c5f02cd576a0b735">str_arena_t</a>* sa = <a class="code hl_function" href="group__str__arena.html#gaf4437c46b6aa0b19e62af692bfe46fbd">str_arena_create</a>(NULL);</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">const</span> <span class="keywordtype">char</span>* a = <a class="code hl_function" href="group__str__arena.html#gad390451941e498f1f8b710a63f3445c5">str_arena_intern</a>(sa, <span class="stringliteral">&quot;visible&quot;</span>, NULL);</div>
+<div class="line"><span class="keyword">const</span> <span class="keywordtype">char</span>* b = <a class="code hl_function" href="group__str__arena.html#gad390451941e498f1f8b710a63f3445c5">str_arena_intern</a>(sa, <span class="stringliteral">&quot;visible&quot;</span>, NULL);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// a == b: same pointer, no strcmp needed</span></div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_function" href="group__str__arena.html#ga797b411d5fa3884b531e32f2e6cad1ee">str_arena_destroy</a>(sa);</div>
+<div class="ttc" id="agroup__str__arena_html_ga797b411d5fa3884b531e32f2e6cad1ee"><div class="ttname"><a href="group__str__arena.html#ga797b411d5fa3884b531e32f2e6cad1ee">str_arena_destroy</a></div><div class="ttdeci">void str_arena_destroy(str_arena_t *sa)</div><div class="ttdoc">Destroys the string arena and frees all associated memory.</div></div>
+<div class="ttc" id="agroup__str__arena_html_gac22cf50f504ffff1c5f02cd576a0b735"><div class="ttname"><a href="group__str__arena.html#gac22cf50f504ffff1c5f02cd576a0b735">str_arena_t</a></div><div class="ttdeci">struct str_arena str_arena_t</div><div class="ttdoc">String interning allocator.</div><div class="ttdef"><b>Definition</b> allocators.h:173</div></div>
+<div class="ttc" id="agroup__str__arena_html_gad390451941e498f1f8b710a63f3445c5"><div class="ttname"><a href="group__str__arena.html#gad390451941e498f1f8b710a63f3445c5">str_arena_intern</a></div><div class="ttdeci">const char * str_arena_intern(str_arena_t *sa, const char *s, error_t *err)</div><div class="ttdoc">Interns a string, returning a stable pointer to its unique copy.</div></div>
+<div class="ttc" id="agroup__str__arena_html_gaf4437c46b6aa0b19e62af692bfe46fbd"><div class="ttname"><a href="group__str__arena.html#gaf4437c46b6aa0b19e62af692bfe46fbd">str_arena_create</a></div><div class="ttdeci">str_arena_t * str_arena_create(error_t *err)</div><div class="ttdoc">Creates a new empty string arena.</div></div>
+</div><!-- fragment --><p>Internally uses FNV-1a <code>uint64_t</code> hashes as hashmap keys, with a <code>strcmp</code> fallback to guard against the negligible probability of hash collisions.</p>
+<p>See <a class="el" href="group__str__arena.html">String arena</a> for the full API.</p>
+<h1><a class="anchor" id="building"></a>
+Building</h1>
+<p>Requirements: CMake 3.31+, a C99-compatible compiler, and the <a href="https://tdecorso.github.io/containers/">containers</a> library installed.</p>
+<div class="fragment"><div class="line">mkdir build &amp;&amp; cd build</div>
+<div class="line">cmake ..</div>
+<div class="line">cmake --build .</div>
+<div class="line">sudo cmake --install .</div>
+</div><!-- fragment --><p>To consume the library in a CMake project:</p>
+<div class="fragment"><div class="line">find_package(allocators 0.1 REQUIRED)</div>
+<div class="line">target_link_libraries(my_target PRIVATE allocators::allocators)</div>
+</div><!-- fragment --><h1><a class="anchor" id="notes"></a>
+Notes and limitations</h1>
+<ul>
+<li><b>Not thread-safe.</b> External synchronisation is required for concurrent access to any allocator.</li>
+<li><b>No individual frees.</b> Arena memory is released all at once on destroy or reset. Use a general-purpose allocator if per-object lifetime is needed.</li>
+<li>This project is in early development. Interfaces may evolve as additional allocators are introduced.</li>
+</ul>
+<h1><a class="anchor" id="license"></a>
+License</h1>
+<p>Released under the <a href="https://github.com/tdecorso/allocators/blob/main/LICENSE">MIT License</a>. Copyright &copy; 2026 tdecorso. </p>
+</div></div><!-- PageDoc -->
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

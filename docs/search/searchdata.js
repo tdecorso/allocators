@@ -1,10 +1,11 @@
 var indexSectionsWithContent =
 {
-  0: "as",
+  0: "ablnos",
   1: "a",
   2: "as",
   3: "as",
-  4: "as"
+  4: "as",
+  5: "a"
 };
 
 var indexSectionNames =
@@ -13,7 +14,8 @@ var indexSectionNames =
   1: "files",
   2: "functions",
   3: "typedefs",
-  4: "groups"
+  4: "groups",
+  5: "pages"
 };
 
 var indexSectionLabels =
@@ -22,6 +24,7 @@ var indexSectionLabels =
   1: "Files",
   2: "Functions",
   3: "Typedefs",
-  4: "Modules"
+  4: "Modules",
+  5: "Pages"
 };
 

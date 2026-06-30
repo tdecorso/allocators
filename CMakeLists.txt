@@ -7,7 +7,8 @@ set(CMAKE_BUILD_TYPE Debug)
 find_package(containers 0.1 REQUIRED)
 
 add_library(allocators
-            src/arena.c)
+            src/arena.c
+            src/str_arena.c)
 
 target_include_directories(allocators
     PUBLIC
@@ -16,9 +17,11 @@ target_include_directories(allocators
 
 target_link_libraries(allocators PUBLIC containers::containers)
 
-add_executable(test_arena tests/test_arena.c)
+add_executable(test_arena        tests/test_arena.c)
+add_executable(test_str_arena tests/test_str_arena.c)
 
 target_link_libraries(test_arena PRIVATE allocators)
+target_link_libraries(test_str_arena PRIVATE allocators)
 
 # ── Install ────────────────────────────────────────────────────────
 
