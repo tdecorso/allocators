@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['string_20arena_0',['String arena',['../group__str__arena.html',1,'']]]
+  ['pool_20allocator_0',['Pool allocator',['../group__pool.html',1,'']]]
 ];

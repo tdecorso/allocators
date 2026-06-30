@@ -8,12 +8,13 @@
  *
  * `allocators` provides allocator types designed for workloads that create
  * many small objects with identical lifetimes. All allocators are optimised
- * for bulk allocation and single-shot release rather than individual frees.
+ * for speed and low overhead over individual per-object malloc/free calls.
  *
- * | Allocator    | Alloc     | Reset  | Free   |
- * |--------------|-----------|--------|--------|
- * | Arena        | O(1)†     | O(b)‡  | O(b)‡  |
- * | String arena | O(n)§/O(1)¶ | —    | O(b)‡  |
+ * | Allocator    | Alloc       | Individual free | Destroy |
+ * |--------------|-------------|-----------------|---------|
+ * | Arena        | O(1)†       | —               | O(b)‡   |
+ * | String arena | O(n)§/O(1)¶ | —               | O(b)‡   |
+ * | Pool         | O(1)†       | O(1)            | O(b)‡   |
  *
  * † Amortised — a new block is allocated only when the current one is exhausted.
  * ‡ O(b) where b is the number of blocks allocated.
@@ -68,6 +69,34 @@
  *
  * See @ref str_arena for the full API.
  *
+ * @section pool_section Pool allocator
+ *
+ * A fixed-size slot allocator. All slots are the same size, set at creation
+ * time. Free slots are linked via an embedded free list so both allocation
+ * and individual deallocation are O(1). When all slots in the current block
+ * are exhausted a new block is chained automatically.
+ *
+ * Suitable for any workload that creates and destroys many objects of the
+ * same type — DOM nodes, widgets, event records.
+ *
+ * @code
+ * typedef struct { int id; float x, y; } node_t;
+ *
+ * pool_t* pool = pool_create(sizeof(node_t), 64, NULL);
+ *
+ * node_t* a = (node_t*)pool_alloc(pool, NULL);
+ * node_t* b = (node_t*)pool_alloc(pool, NULL);
+ * a->id = 1;
+ * b->id = 2;
+ *
+ * pool_free(pool, a, NULL);
+ * node_t* c = (node_t*)pool_alloc(pool, NULL);   // reuses a's slot
+ *
+ * pool_destroy(pool);
+ * @endcode
+ *
+ * See @ref pool for the full API.
+ *
  * @section building Building
  *
  * Requirements: CMake 3.31+, a C99-compatible compiler, and the
@@ -92,9 +121,11 @@
  *
  * - **Not thread-safe.** External synchronisation is required for
  *   concurrent access to any allocator.
- * - **No individual frees.** Arena memory is released all at once on
- *   destroy or reset. Use a general-purpose allocator if per-object
- *   lifetime is needed.
+ * - **Arena and string arena have no individual frees.** Memory is released
+ *   all at once on destroy or reset. Use @ref pool_t if per-object lifetime
+ *   is needed.
+ * - **@ref pool_free does not validate its pointer argument.** Passing a
+ *   pointer that did not originate from the pool is undefined behaviour.
  * - This project is in early development. Interfaces may evolve as
  *   additional allocators are introduced.
  *

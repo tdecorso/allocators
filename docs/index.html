@@ -76,14 +76,16 @@ $(function() {
 <div class="textblock"><p>A memory allocator library in C99, built on top of <a href="https://tdecorso.github.io/containers/">containers</a>.</p>
 <h1><a class="anchor" id="overview"></a>
 Overview</h1>
-<p><code>allocators</code> provides allocator types designed for workloads that create many small objects with identical lifetimes. All allocators are optimised for bulk allocation and single-shot release rather than individual frees.</p>
+<p><code>allocators</code> provides allocator types designed for workloads that create many small objects with identical lifetimes. All allocators are optimised for speed and low overhead over individual per-object malloc/free calls.</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Allocator   </th><th class="markdownTableHeadNone">Alloc   </th><th class="markdownTableHeadNone">Reset   </th><th class="markdownTableHeadNone">Free    </th></tr>
+<th class="markdownTableHeadNone">Allocator   </th><th class="markdownTableHeadNone">Alloc   </th><th class="markdownTableHeadNone">Individual free   </th><th class="markdownTableHeadNone">Destroy    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">Arena   </td><td class="markdownTableBodyNone">O(1)†   </td><td class="markdownTableBodyNone">O(b)‡   </td><td class="markdownTableBodyNone">O(b)‡    </td></tr>
+<td class="markdownTableBodyNone">Arena   </td><td class="markdownTableBodyNone">O(1)†   </td><td class="markdownTableBodyNone">—   </td><td class="markdownTableBodyNone">O(b)‡    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">String arena   </td><td class="markdownTableBodyNone">O(n)§/O(1)¶   </td><td class="markdownTableBodyNone">—   </td><td class="markdownTableBodyNone">O(b)‡   </td></tr>
+<td class="markdownTableBodyNone">String arena   </td><td class="markdownTableBodyNone">O(n)§/O(1)¶   </td><td class="markdownTableBodyNone">—   </td><td class="markdownTableBodyNone">O(b)‡    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Pool   </td><td class="markdownTableBodyNone">O(1)†   </td><td class="markdownTableBodyNone">O(1)   </td><td class="markdownTableBodyNone">O(b)‡   </td></tr>
 </table>
 <p>† Amortised — a new block is allocated only when the current one is exhausted. ‡ O(b) where b is the number of blocks allocated. § O(n) where n is the string length — on the first intern of a given string. ¶ O(1) on subsequent interns of the same string (hash lookup).</p>
 <h1><a class="anchor" id="arena_section"></a>
@@ -125,6 +127,29 @@ String arena</h1>
 <div class="ttc" id="agroup__str__arena_html_gaf4437c46b6aa0b19e62af692bfe46fbd"><div class="ttname"><a href="group__str__arena.html#gaf4437c46b6aa0b19e62af692bfe46fbd">str_arena_create</a></div><div class="ttdeci">str_arena_t * str_arena_create(error_t *err)</div><div class="ttdoc">Creates a new empty string arena.</div></div>
 </div><!-- fragment --><p>Internally uses FNV-1a <code>uint64_t</code> hashes as hashmap keys, with a <code>strcmp</code> fallback to guard against the negligible probability of hash collisions.</p>
 <p>See <a class="el" href="group__str__arena.html">String arena</a> for the full API.</p>
+<h1><a class="anchor" id="pool_section"></a>
+Pool allocator</h1>
+<p>A fixed-size slot allocator. All slots are the same size, set at creation time. Free slots are linked via an embedded free list so both allocation and individual deallocation are O(1). When all slots in the current block are exhausted a new block is chained automatically.</p>
+<p>Suitable for any workload that creates and destroys many objects of the same type — DOM nodes, widgets, event records.</p>
+<div class="fragment"><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct </span>{ <span class="keywordtype">int</span> id; <span class="keywordtype">float</span> x, y; } node_t;</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_typedef" href="group__pool.html#gaf8750447b5109befb543481e537a4e20">pool_t</a>* pool = <a class="code hl_function" href="group__pool.html#gab20b8d7df16b7d280bb87a1bfc971de2">pool_create</a>(<span class="keyword">sizeof</span>(node_t), 64, NULL);</div>
+<div class="line"> </div>
+<div class="line">node_t* a = (node_t*)<a class="code hl_function" href="group__pool.html#gad841db93407b5ad1e4c163c71d200fbb">pool_alloc</a>(pool, NULL);</div>
+<div class="line">node_t* b = (node_t*)<a class="code hl_function" href="group__pool.html#gad841db93407b5ad1e4c163c71d200fbb">pool_alloc</a>(pool, NULL);</div>
+<div class="line">a-&gt;id = 1;</div>
+<div class="line">b-&gt;id = 2;</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_function" href="group__pool.html#ga5c5a047f13695905ccfcdd7e9514fa91">pool_free</a>(pool, a, NULL);</div>
+<div class="line">node_t* c = (node_t*)<a class="code hl_function" href="group__pool.html#gad841db93407b5ad1e4c163c71d200fbb">pool_alloc</a>(pool, NULL);   <span class="comment">// reuses a&#39;s slot</span></div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_function" href="group__pool.html#ga65021ca288bbf23486db8d8573f1d4ec">pool_destroy</a>(pool);</div>
+<div class="ttc" id="agroup__pool_html_ga5c5a047f13695905ccfcdd7e9514fa91"><div class="ttname"><a href="group__pool.html#ga5c5a047f13695905ccfcdd7e9514fa91">pool_free</a></div><div class="ttdeci">void pool_free(pool_t *pool, void *ptr, error_t *err)</div><div class="ttdoc">Returns a slot to the pool.</div></div>
+<div class="ttc" id="agroup__pool_html_ga65021ca288bbf23486db8d8573f1d4ec"><div class="ttname"><a href="group__pool.html#ga65021ca288bbf23486db8d8573f1d4ec">pool_destroy</a></div><div class="ttdeci">void pool_destroy(pool_t *pool)</div><div class="ttdoc">Destroys the pool and frees all associated memory.</div></div>
+<div class="ttc" id="agroup__pool_html_gab20b8d7df16b7d280bb87a1bfc971de2"><div class="ttname"><a href="group__pool.html#gab20b8d7df16b7d280bb87a1bfc971de2">pool_create</a></div><div class="ttdeci">pool_t * pool_create(size_t slot_size, size_t block_slots, error_t *err)</div><div class="ttdoc">Creates a new empty pool.</div></div>
+<div class="ttc" id="agroup__pool_html_gad841db93407b5ad1e4c163c71d200fbb"><div class="ttname"><a href="group__pool.html#gad841db93407b5ad1e4c163c71d200fbb">pool_alloc</a></div><div class="ttdeci">void * pool_alloc(pool_t *pool, error_t *err)</div><div class="ttdoc">Allocates one slot from the pool.</div></div>
+<div class="ttc" id="agroup__pool_html_gaf8750447b5109befb543481e537a4e20"><div class="ttname"><a href="group__pool.html#gaf8750447b5109befb543481e537a4e20">pool_t</a></div><div class="ttdeci">struct pool pool_t</div><div class="ttdoc">Fixed-size slot allocator.</div><div class="ttdef"><b>Definition</b> allocators.h:239</div></div>
+</div><!-- fragment --><p>See <a class="el" href="group__pool.html">Pool allocator</a> for the full API.</p>
 <h1><a class="anchor" id="building"></a>
 Building</h1>
 <p>Requirements: CMake 3.31+, a C99-compatible compiler, and the <a href="https://tdecorso.github.io/containers/">containers</a> library installed.</p>
@@ -139,7 +164,8 @@ Building</h1>
 Notes and limitations</h1>
 <ul>
 <li><b>Not thread-safe.</b> External synchronisation is required for concurrent access to any allocator.</li>
-<li><b>No individual frees.</b> Arena memory is released all at once on destroy or reset. Use a general-purpose allocator if per-object lifetime is needed.</li>
+<li><b>Arena and string arena have no individual frees.</b> Memory is released all at once on destroy or reset. Use <a class="el" href="group__pool.html#gaf8750447b5109befb543481e537a4e20">pool_t</a> if per-object lifetime is needed.</li>
+<li><b><a class="el" href="group__pool.html#ga5c5a047f13695905ccfcdd7e9514fa91">pool_free</a> does not validate its pointer argument.</b> Passing a pointer that did not originate from the pool is undefined behaviour.</li>
 <li>This project is in early development. Interfaces may evolve as additional allocators are introduced.</li>
 </ul>
 <h1><a class="anchor" id="license"></a>

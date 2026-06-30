@@ -119,6 +119,9 @@ Typedefs</h2></td></tr>
 <tr class="memitem:gac22cf50f504ffff1c5f02cd576a0b735" id="r_gac22cf50f504ffff1c5f02cd576a0b735"><td class="memItemLeft" align="right" valign="top">typedef struct str_arena&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__str__arena.html#gac22cf50f504ffff1c5f02cd576a0b735">str_arena_t</a></td></tr>
 <tr class="memdesc:gac22cf50f504ffff1c5f02cd576a0b735"><td class="mdescLeft">&#160;</td><td class="mdescRight">String interning allocator.  <br /></td></tr>
 <tr class="separator:gac22cf50f504ffff1c5f02cd576a0b735"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf8750447b5109befb543481e537a4e20" id="r_gaf8750447b5109befb543481e537a4e20"><td class="memItemLeft" align="right" valign="top">typedef struct pool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__pool.html#gaf8750447b5109befb543481e537a4e20">pool_t</a></td></tr>
+<tr class="memdesc:gaf8750447b5109befb543481e537a4e20"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fixed-size slot allocator.  <br /></td></tr>
+<tr class="separator:gaf8750447b5109befb543481e537a4e20"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -149,6 +152,18 @@ Functions</h2></td></tr>
 <tr class="memitem:gad390451941e498f1f8b710a63f3445c5" id="r_gad390451941e498f1f8b710a63f3445c5"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__str__arena.html#gad390451941e498f1f8b710a63f3445c5">str_arena_intern</a> (<a class="el" href="group__str__arena.html#gac22cf50f504ffff1c5f02cd576a0b735">str_arena_t</a> *sa, const char *s, error_t *err)</td></tr>
 <tr class="memdesc:gad390451941e498f1f8b710a63f3445c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interns a string, returning a stable pointer to its unique copy.  <br /></td></tr>
 <tr class="separator:gad390451941e498f1f8b710a63f3445c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab20b8d7df16b7d280bb87a1bfc971de2" id="r_gab20b8d7df16b7d280bb87a1bfc971de2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__pool.html#gaf8750447b5109befb543481e537a4e20">pool_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__pool.html#gab20b8d7df16b7d280bb87a1bfc971de2">pool_create</a> (size_t slot_size, size_t block_slots, error_t *err)</td></tr>
+<tr class="memdesc:gab20b8d7df16b7d280bb87a1bfc971de2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new empty pool.  <br /></td></tr>
+<tr class="separator:gab20b8d7df16b7d280bb87a1bfc971de2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga65021ca288bbf23486db8d8573f1d4ec" id="r_ga65021ca288bbf23486db8d8573f1d4ec"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__pool.html#ga65021ca288bbf23486db8d8573f1d4ec">pool_destroy</a> (<a class="el" href="group__pool.html#gaf8750447b5109befb543481e537a4e20">pool_t</a> *pool)</td></tr>
+<tr class="memdesc:ga65021ca288bbf23486db8d8573f1d4ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroys the pool and frees all associated memory.  <br /></td></tr>
+<tr class="separator:ga65021ca288bbf23486db8d8573f1d4ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad841db93407b5ad1e4c163c71d200fbb" id="r_gad841db93407b5ad1e4c163c71d200fbb"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__pool.html#gad841db93407b5ad1e4c163c71d200fbb">pool_alloc</a> (<a class="el" href="group__pool.html#gaf8750447b5109befb543481e537a4e20">pool_t</a> *pool, error_t *err)</td></tr>
+<tr class="memdesc:gad841db93407b5ad1e4c163c71d200fbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocates one slot from the pool.  <br /></td></tr>
+<tr class="separator:gad841db93407b5ad1e4c163c71d200fbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5c5a047f13695905ccfcdd7e9514fa91" id="r_ga5c5a047f13695905ccfcdd7e9514fa91"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__pool.html#ga5c5a047f13695905ccfcdd7e9514fa91">pool_free</a> (<a class="el" href="group__pool.html#gaf8750447b5109befb543481e537a4e20">pool_t</a> *pool, void *ptr, error_t *err)</td></tr>
+<tr class="memdesc:ga5c5a047f13695905ccfcdd7e9514fa91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a slot to the pool.  <br /></td></tr>
+<tr class="separator:ga5c5a047f13695905ccfcdd7e9514fa91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Memory allocators for efficient bulk allocation and string interning. </p>

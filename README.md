@@ -4,16 +4,17 @@ A memory allocator library in C99, built on top of [containers](https://github.c
 
 ## Overview
 
-`allocators` provides allocator types designed for workloads that create many small objects with identical lifetimes. All allocators are optimised for bulk allocation and single-shot release rather than individual frees.
+`allocators` provides allocator types designed for workloads that create many small objects with identical lifetimes. All allocators are optimised for speed and low overhead over individual per-object malloc/free calls.
 
 This is primarily an instructional project. The goal is to produce clean, readable, well-documented C code rather than a production-grade, performance-optimised library.
 
 ## Allocators
 
-| Allocator | Description | Alloc | Reset | Free |
+| Allocator | Description | Alloc | Individual free | Destroy |
 |---|---|---|---|---|
-| Arena | Bump allocator with block chaining | O(1)† | O(b)‡ | O(b)‡ |
+| Arena | Bump allocator with block chaining | O(1)† | — | O(b)‡ |
 | String arena | Arena + hash index for string interning | O(n)§ / O(1)¶ | — | O(b)‡ |
+| Pool | Fixed-size slot allocator with embedded free list | O(1)† | O(1) | O(b)‡ |
 
 † Amortised — a new block is allocated only when the current one is exhausted.  
 ‡ O(b) where b is the number of blocks allocated.  
@@ -89,6 +90,39 @@ str_arena_destroy(sa);
 Internally uses FNV-1a `uint64_t` hashes as hashmap keys, with a `strcmp`
 fallback to guard against the negligible probability of hash collisions.
 
+### Pool allocator
+
+A fixed-size slot allocator. All slots are the same size, set at creation
+time. Free slots are linked via an embedded free list so both allocation and
+individual deallocation are O(1). When all slots in the current block are
+exhausted a new block is chained automatically.
+
+Suitable for any workload that creates and destroys many objects of the same
+type — DOM nodes, widgets, event records.
+
+```c
+typedef struct { int id; float x, y; } node_t;
+
+pool_t* pool = pool_create(sizeof(node_t), 64, NULL);
+
+node_t* a = (node_t*)pool_alloc(pool, NULL);
+node_t* b = (node_t*)pool_alloc(pool, NULL);
+a->id = 1;
+b->id = 2;
+
+/* return a slot individually — O(1) */
+pool_free(pool, a, NULL);
+
+/* slot is reused on the next alloc */
+node_t* c = (node_t*)pool_alloc(pool, NULL);   /* c == a */
+
+pool_destroy(pool);
+```
+
+`block_slots` controls how many slots are allocated per block. Larger values
+reduce the frequency of block allocations; smaller values reduce peak memory
+when few slots are live at once.
+
 ## Building
 
 Requirements: CMake 3.31+, a C99-compatible compiler, and the
@@ -122,6 +156,7 @@ After building, run any test binary directly from the build directory.
 ```bash
 ./test_arena
 ./test_str_arena
+./test_pool
 ```
 
 To check for memory leaks with Valgrind:
@@ -146,8 +181,8 @@ Then open `docs/html/index.html` in your browser.
 ## Notes and limitations
 
 - **Not thread-safe.** External synchronisation is required for concurrent access to any allocator.
-- **No individual frees.** Arena memory is released all at once on destroy or reset. Use a general-purpose allocator if per-object lifetime is needed.
-- **No cycle detection.** Not applicable here, but noted for consistency with the containers library.
+- **Arena and string arena have no individual frees.** Memory is released all at once on destroy or reset. Use `pool_t` if per-object lifetime is needed.
+- **`pool_free` does not validate its pointer argument.** Passing a pointer that did not originate from the pool is undefined behaviour.
 - **Early development.** Interfaces may evolve as additional allocators are introduced.
 
 ## License

@@ -210,4 +210,93 @@ const char *str_arena_intern(str_arena_t *sa, const char *s, error_t *err);
 
 /// @} // str_arena
 
+/**
+ * @defgroup pool Pool allocator
+ * @brief Fixed-size slot allocator with O(1) alloc and free.
+ *
+ * Memory is divided into fixed-size slots organised in a chain of
+ * heap-allocated blocks. Free slots are linked via an embedded free list
+ * so both allocation and individual deallocation are O(1).
+ *
+ * When all slots in the current block are exhausted a new block is
+ * allocated and chained automatically. The pool never fails due to
+ * capacity — only due to out-of-memory conditions.
+ *
+ * All slots are the same size, set at creation time. The pool is raw
+ * (`void*`) — the caller is responsible for casting to the correct type.
+ *
+ * @note The pool has no way to verify that a pointer passed to
+ *       @ref pool_free actually originated from this pool. Passing
+ *       an invalid pointer is undefined behaviour.
+ * @{
+ */
+
+/**
+ * @brief Fixed-size slot allocator.
+ *
+ * The internal layout is opaque — always access through the pool API.
+ */
+typedef struct pool pool_t;
+
+/**
+ * @brief Creates a new empty pool.
+ *
+ * No blocks are allocated until the first call to @ref pool_alloc.
+ *
+ * @param slot_size   Size in bytes of each slot. Must be > 0. Internally
+ *                    rounded up to `_Alignof(max_align_t)` and to at least
+ *                    `sizeof(void*)` to accommodate the embedded free list.
+ * @param block_slots Number of slots per block. Must be > 0. Controls the
+ *                    granularity of growth — larger values reduce block
+ *                    allocations at the cost of higher peak memory.
+ * @param err         Optional error output. Populated on failure.
+ * @return Pointer to the newly created pool, or NULL on failure.
+ */
+pool_t *pool_create(size_t slot_size, size_t block_slots, error_t *err);
+
+/**
+ * @brief Destroys the pool and frees all associated memory.
+ *
+ * Frees every block in the chain and the pool itself. All pointers
+ * previously returned by @ref pool_alloc become invalid, whether or not
+ * they have been returned via @ref pool_free.
+ *
+ * @param pool The pool to destroy. NULL is safe and does nothing.
+ */
+void pool_destroy(pool_t *pool);
+
+/**
+ * @brief Allocates one slot from the pool.
+ *
+ * Returns a pointer to the first free slot. If no free slots are
+ * available a new block is allocated and chained before returning.
+ *
+ * @param pool The pool. Must not be NULL.
+ * @param err  Optional error output. Populated on failure.
+ * @return Pointer to the allocated slot, or NULL on failure.
+ *
+ * @note The returned memory is not zero-initialised.
+ * @note Complexity: O(1) when a free slot is available; O(s) amortised
+ *       overall where s is the number of slots per block.
+ */
+void *pool_alloc(pool_t *pool, error_t *err);
+
+/**
+ * @brief Returns a slot to the pool.
+ *
+ * Pushes `ptr` back onto the free list, making it available for a
+ * future @ref pool_alloc call. The memory is not zeroed.
+ *
+ * @param pool The pool. Must not be NULL.
+ * @param ptr  Slot to return. Must not be NULL. Must have been returned
+ *             by a prior call to @ref pool_alloc on this pool.
+ * @param err  Optional error output. Populated on failure.
+ *
+ * @warning Passing a pointer that did not originate from this pool is
+ *          undefined behaviour. No validation is performed.
+ * @note Complexity: O(1).
+ */
+void pool_free(pool_t *pool, void *ptr, error_t *err);
+
+
 #endif /* ALLOCATORS_H */
